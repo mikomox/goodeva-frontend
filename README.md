@@ -44,6 +44,11 @@ src/
 └── App.tsx            
 ```
 
+## Requirements
+
+-   Node.js >= 20
+-   npm >= 10
+
 ## 🔧 Instalasi & Pengaturan
 
 1.  **Instal Dependensi**:
