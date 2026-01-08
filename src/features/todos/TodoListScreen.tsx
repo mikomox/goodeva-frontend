@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import { useTodos } from './api/useTodos';
 import { useCreateTodo } from './api/useCreateTodo';
+import { useToggleTodo } from './api/useToggleTodo';
 import { TodoList } from './components/TodoList';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,22 +18,40 @@ export function TodoListScreen() {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch] = useDebounce(searchTerm, 500);
     const [filter, setFilter] = useState<FilterType>('all');
-    const { data: todos = [], isLoading } = useTodos(debouncedSearch);
-    const { mutate: createTodo } = useCreateTodo();
+
+    // Hooks
+    const { data: todos = [], isLoading, refetch } = useTodos(debouncedSearch);
+    const { mutate: createTodo, isLoading: isCreating } = useCreateTodo();
+    const { mutate: toggleTodo } = useToggleTodo();
+
     const [newTodo, setNewTodo] = useState('');
 
-    const handleCreate = (e: React.FormEvent) => {
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newTodo.trim()) {
-            createTodo(newTodo.trim());
-            setNewTodo('');
+            await createTodo(newTodo.trim(), {
+                onSuccess: () => {
+                    refetch();
+                    setNewTodo('');
+                }
+            });
         }
     };
+
+    const handleToggle = async (id: number, completed: boolean) => {
+        await toggleTodo({ id, completed }, {
+            onSuccess: () => {
+                refetch();
+            }
+        });
+    };
+
     const filteredTodos = todos.filter((todo) => {
         if (filter === 'active') return !todo.completed;
         if (filter === 'completed') return todo.completed;
         return true;
     });
+
     return (
         <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
             <div className="mx-auto max-w-2xl space-y-6">
@@ -60,14 +79,19 @@ export function TodoListScreen() {
                                 value={newTodo}
                                 onChange={(e) => setNewTodo(e.target.value)}
                                 className="bg-white"
+                                disabled={isCreating}
                             />
-                            <Button type="submit" disabled={!newTodo.trim()}>
-                                <Plus className="mr-2 h-4 w-4" />
+                            <Button type="submit" disabled={!newTodo.trim() || isCreating}>
+                                {isCreating ? (
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                ) : (
+                                    <Plus className="mr-2 h-4 w-4" />
+                                )}
                                 Add
                             </Button>
                         </form>
-                    </CardContent>
-                </Card>
+                    </CardContent >
+                </Card >
 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="relative flex-1">
@@ -97,8 +121,12 @@ export function TodoListScreen() {
                     </div>
                 </div>
 
-                <TodoList todos={filteredTodos} isLoading={isLoading} />
-            </div>
-        </div>
+                <TodoList
+                    todos={filteredTodos}
+                    isLoading={isLoading}
+                    onToggle={handleToggle}
+                />
+            </div >
+        </div >
     );
 }

@@ -6,9 +6,10 @@ import { FileText } from 'lucide-react';
 interface TodoListProps {
     todos: Todo[];
     isLoading: boolean;
+    onToggle: (id: number, completed: boolean) => void;
 }
 
-export function TodoList({ todos, isLoading }: TodoListProps) {
+export function TodoList({ todos, isLoading, onToggle }: TodoListProps) {
     if (isLoading) {
         return (
             <div className="space-y-3">
@@ -37,7 +38,7 @@ export function TodoList({ todos, isLoading }: TodoListProps) {
         <div className="space-y-3">
             <AnimatePresence mode='popLayout'>
                 {todos.map((todo) => (
-                    <TodoItem key={todo.id} todo={todo} />
+                    <TodoItem key={todo.id} todo={todo} onToggle={onToggle} />
                 ))}
             </AnimatePresence>
         </div>

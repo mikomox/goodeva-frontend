@@ -1,41 +1,25 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { api } from '@/lib/axios';
 import type { Todo } from './useTodos';
 
 export const useCreateTodo = () => {
-    const queryClient = useQueryClient();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<Error | null>(null);
 
-    return useMutation({
-        mutationFn: async (title: string) => {
+    const mutate = async (title: string, options?: { onSuccess?: () => void }) => {
+        setIsLoading(true);
+        setError(null);
+        try {
             const { data } = await api.post<Todo>('/todos', { title });
+            options?.onSuccess?.();
             return data;
-        },
-        onMutate: async (newTitle) => {
-            await queryClient.cancelQueries({ queryKey: ['todos'] });
+        } catch (err) {
+            setError(err as Error);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-            const previousTodos = queryClient.getQueriesData<Todo[]>({ queryKey: ['todos'] });
-
-            queryClient.setQueriesData<Todo[]>({ queryKey: ['todos'] }, (old) => [
-                ...(old || []),
-                {
-                    id: Date.now(),
-                    title: newTitle,
-                    completed: false,
-                    created_at: new Date().toISOString(),
-                },
-            ]);
-
-            return { previousTodos };
-        },
-        onError: (_err, _newTodo, context) => {
-            if (context?.previousTodos) {
-                context.previousTodos.forEach(([queryKey, data]) => {
-                    queryClient.setQueryData(queryKey, data);
-                });
-            }
-        },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['todos'] });
-        },
-    });
+    return { mutate, isLoading, error };
 };

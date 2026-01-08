@@ -1,18 +1,20 @@
 import type { Todo } from '../api/useTodos';
-import { useToggleTodo } from '../api/useToggleTodo';
+
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 interface TodoItemProps {
     todo: Todo;
+    onToggle: (id: number, completed: boolean) => void;
 }
 
-export function TodoItem({ todo }: TodoItemProps) {
-    const { mutate: toggleTodo } = useToggleTodo();
-
+export function TodoItem({ todo, onToggle }: TodoItemProps) {
+    const [loading, isLoading] = useState(false);
     const handleToggle = () => {
-        toggleTodo({ id: todo.id, completed: !todo.completed });
+        onToggle(todo.id, !todo.completed);
+        isLoading(true);
     };
 
     return (
@@ -25,6 +27,7 @@ export function TodoItem({ todo }: TodoItemProps) {
         >
             <button
                 onClick={handleToggle}
+                disabled={loading}
                 className={cn(
                     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
                     todo.completed
@@ -32,7 +35,11 @@ export function TodoItem({ todo }: TodoItemProps) {
                         : "border-zinc-300 bg-transparent hover:border-primary"
                 )}
             >
-                {todo.completed && <Check className="h-3.5 w-3.5" />}
+                {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                    todo.completed && <Check className="h-3.5 w-3.5" />
+                )}
             </button>
 
             <span
